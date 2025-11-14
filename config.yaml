@@ -1,0 +1,90 @@
+# Literature Review Generator Configuration
+
+database:
+  path: "data/knowledge_base.db"
+  backup_enabled: true
+  backup_interval_hours: 24
+
+processing:
+  # Token limits for summaries
+  summary_brief_tokens: 250
+  summary_detailed_tokens: 1000
+
+  # Batch processing
+  batch_size: 5
+
+  # Text extraction
+  max_text_length: 100000
+
+  # Parallel processing
+  max_workers: 4
+
+generation:
+  # Output settings
+  default_format: "markdown"
+  citation_style: "ACM"
+
+  # Quality thresholds
+  min_papers_per_theme: 10
+  min_papers_for_review: 20
+
+  # Section configuration
+  sections:
+    - introduction
+    - background
+    - taxonomy
+    - analysis
+    - discussion
+    - conclusion
+
+  # Target lengths (in words)
+  target_lengths:
+    abstract: 250
+    introduction: 1500
+    background: 1000
+    taxonomy: 2000
+    analysis: 8000
+    discussion: 2000
+    conclusion: 500
+
+context:
+  # Token management
+  max_tokens: 200000
+  buffer_tokens: 10000
+  summary_tokens_per_paper: 600
+  max_active_papers: 15
+
+retrieval:
+  # Query settings
+  max_results: 100
+  relevance_threshold: 0.5
+
+  # Ranking
+  use_relevance_ranking: true
+  rank_by_citations: true
+  rank_by_year: true
+  recent_year_weight: 1.5
+
+themes:
+  # Theme extraction
+  auto_classify: true
+  min_papers_per_theme: 3
+
+  # Common themes (can be customized)
+  default_themes:
+    - "Machine Learning"
+    - "Deep Learning"
+    - "Natural Language Processing"
+    - "Computer Vision"
+    - "Reinforcement Learning"
+    - "Data Mining"
+    - "Information Retrieval"
+    - "Software Engineering"
+    - "Distributed Systems"
+    - "Security and Privacy"
+
+logging:
+  level: "INFO"
+  file: "logs/app.log"
+  console: true
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

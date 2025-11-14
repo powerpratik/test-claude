@@ -7,10 +7,18 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from .templates import ReviewTemplates, CitationManager, TableFormatter
-from ..knowledge_base.storage import KnowledgeBase
-from ..knowledge_base.models import Paper, Theme, FindingCategory
-from ..retrieval.query_engine import QueryEngine, QueryParams
+try:
+    from .templates import ReviewTemplates, CitationManager, TableFormatter
+    from .latex_formatter import LaTeXFormatter, OverleafProject
+    from ..knowledge_base.storage import KnowledgeBase
+    from ..knowledge_base.models import Paper, Theme, FindingCategory
+    from ..retrieval.query_engine import QueryEngine, QueryParams
+except ImportError:
+    from generation.templates import ReviewTemplates, CitationManager, TableFormatter
+    from generation.latex_formatter import LaTeXFormatter, OverleafProject
+    from knowledge_base.storage import KnowledgeBase
+    from knowledge_base.models import Paper, Theme, FindingCategory
+    from retrieval.query_engine import QueryEngine, QueryParams
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +46,8 @@ class ReviewGenerator:
         theme: str,
         sections: Optional[List[str]] = None,
         output_format: str = "markdown",
-        min_papers: int = 20
+        min_papers: int = 20,
+        author: str = "Literature Review Generator"
     ) -> str:
         """
         Generate a complete literature review.
@@ -118,6 +127,10 @@ class ReviewGenerator:
         review_text = "".join(review_parts)
 
         logger.info(f"Generated review with {self.citation_manager.get_citation_count()} citations")
+
+        # Convert to LaTeX if requested
+        if output_format.lower() == "latex":
+            review_text = self._convert_to_latex(theme, review_parts, author)
 
         return review_text
 
@@ -406,6 +419,90 @@ class ReviewGenerator:
             f.write(review_text)
 
         logger.info(f"Review saved to: {output_path}")
+
+    def _convert_to_latex(self, theme: str, review_parts: List[str], author: str) -> str:
+        """
+        Convert markdown review to LaTeX.
+
+        Args:
+            theme: Review theme
+            review_parts: List of review section parts
+            author: Author name
+
+        Returns:
+            LaTeX formatted review
+        """
+        # Combine review parts
+        full_review = "".join(review_parts)
+
+        # Extract sections
+        sections_dict = {}
+        current_section = None
+        current_content = []
+
+        for line in full_review.split('\n'):
+            if line.startswith('# '):
+                # Save previous section
+                if current_section:
+                    sections_dict[current_section] = '\n'.join(current_content)
+
+                # Start new section
+                current_section = line[2:].strip().lower().replace(' ', '_')
+                current_content = []
+            else:
+                current_content.append(line)
+
+        # Save last section
+        if current_section:
+            sections_dict[current_section] = '\n'.join(current_content)
+
+        # Generate LaTeX
+        title = f"Literature Review: {theme}"
+        latex = LaTeXFormatter.create_complete_document(
+            title=title,
+            sections=sections_dict,
+            citations=self.citation_manager.citations,
+            author=author
+        )
+
+        return latex
+
+    def generate_latex_review(
+        self,
+        theme: str,
+        sections: Optional[List[str]] = None,
+        min_papers: int = 20,
+        author: str = "Literature Review Generator"
+    ) -> str:
+        """
+        Generate a LaTeX-formatted literature review.
+
+        Args:
+            theme: Theme for the review
+            sections: Sections to include
+            min_papers: Minimum papers required
+            author: Author name
+
+        Returns:
+            LaTeX formatted review
+        """
+        return self.generate_review(
+            theme=theme,
+            sections=sections,
+            output_format="latex",
+            min_papers=min_papers,
+            author=author
+        )
+
+    def save_overleaf_project(self, review_latex: str, output_dir: str):
+        """
+        Save review as Overleaf project.
+
+        Args:
+            review_latex: LaTeX content
+            output_dir: Output directory
+        """
+        OverleafProject.create_project_structure(review_latex, output_dir)
 
     def estimate_review_length(self, theme: str) -> Dict[str, int]:
         """

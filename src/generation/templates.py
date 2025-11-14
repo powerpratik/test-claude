@@ -2,8 +2,10 @@
 Templates for literature review sections following ACM Computing Surveys format.
 """
 
-from typing import List, Dict
-from ..knowledge_base.models import Paper
+from typing import List, Dict, TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from knowledge_base.models import Paper
 
 
 class ReviewTemplates:
@@ -240,7 +242,7 @@ The remainder of this survey is organized as follows:
 """
 
     @staticmethod
-    def format_reference(paper: Paper, citation_number: int) -> str:
+    def format_reference(paper: Any, citation_number: int) -> str:
         """Format a paper as a reference."""
         year = paper.year if paper.year else "n.d."
         authors = paper.authors if paper.authors else "Unknown"
@@ -256,7 +258,7 @@ class CitationManager:
         self.citations: Dict[int, Paper] = {}
         self.next_number = 1
 
-    def add_citation(self, paper: Paper) -> int:
+    def add_citation(self, paper: Any) -> int:
         """
         Add a citation and return its number.
 
@@ -302,7 +304,7 @@ class TableFormatter:
     """Format comparison tables."""
 
     @staticmethod
-    def create_comparison_table(papers: List[Paper], columns: List[str]) -> str:
+    def create_comparison_table(papers: List[Any], columns: List[str]) -> str:
         """
         Create a markdown comparison table.
 

@@ -1,9 +1,10 @@
 /*
   Phone Claw firmware - ESP8266 (Wemos D1 mini)
 
-  Two SG90 servos press the OnePlus 7 Pro buttons:
-    VOL servo (left side, D5)  : rocks one way for VOL UP, the other for VOL DOWN
-    PWR servo (right side, D6) : presses POWER
+  Three SG90 servos, one per OnePlus 7 Pro button:
+    UP  servo (left side, above the rocker, D5) : presses VOLUME UP
+    DN  servo (left side, below the rocker, D6) : presses VOLUME DOWN
+    PWR servo (right side, D7)                  : presses POWER
 
   Control it from:
     * a web page   -> open http://phoneclaw.local/ (or the IP printed on Serial)
@@ -32,8 +33,9 @@ const char* AP_SSID   = "PhoneClaw";
 const char* AP_PASS   = "clawclaw";   // at least 8 characters
 
 // ---------- Pins ----------------------------------------------------------
-const uint8_t PIN_VOL = D5;   // GPIO14
-const uint8_t PIN_PWR = D6;   // GPIO12
+const uint8_t PIN_UP  = D5;   // GPIO14
+const uint8_t PIN_DN  = D6;   // GPIO12
+const uint8_t PIN_PWR = D7;   // GPIO13
 
 // ---------- Timing --------------------------------------------------------
 const uint16_t TRAVEL_MS     = 180;   // time for the servo to reach the button
@@ -44,14 +46,16 @@ const uint16_t SHOT_MS       = 900;   // power + vol down (screenshot)
 // ---------- Calibration (stored in EEPROM) -------------------------------
 struct Cal {
   uint32_t magic;
-  uint8_t volRest, volUp, volDown;
+  uint8_t upRest, upPress;
+  uint8_t dnRest, dnPress;
   uint8_t pwrRest, pwrPress;
 };
-const uint32_t CAL_MAGIC = 0xC1A70001;
-// Safe defaults: finger centred, +/-25 deg to press. Tune with the web page.
-Cal cal = {CAL_MAGIC, 90, 65, 115, 90, 115};
+const uint32_t CAL_MAGIC = 0xC1A70002;
+// Defaults: rest at 90, press ~12 deg away. Which way is "in" depends on the
+// side and on how the horn went on - set the real values on the web page.
+Cal cal = {CAL_MAGIC, 90, 78, 90, 102, 90, 102};
 
-Servo volServo, pwrServo;
+Servo upServo, dnServo, pwrServo;
 ESP8266WebServer server(80);
 
 void loadCal() {
@@ -72,35 +76,39 @@ void moveTo(Servo& s, uint8_t pin, uint8_t angle) {
   s.write(constrain(angle, 0, 180));
 }
 
-// Release both servos so they don't hum or keep pushing on the phone.
+// Release all servos so they don't hum or keep pushing on the phone.
 void relax() {
   delay(TRAVEL_MS + 100);
-  volServo.detach();
+  upServo.detach();
+  dnServo.detach();
   pwrServo.detach();
 }
 
 void restAll() {
-  moveTo(volServo, PIN_VOL, cal.volRest);
+  moveTo(upServo, PIN_UP, cal.upRest);
+  moveTo(dnServo, PIN_DN, cal.dnRest);
   moveTo(pwrServo, PIN_PWR, cal.pwrRest);
 }
 
-// Press one or both buttons for `holdMs`, then return to rest.
-void press(bool vol, uint8_t volAngle, bool pwr, uint16_t holdMs) {
-  if (vol) moveTo(volServo, PIN_VOL, volAngle);
+// Press any combination of buttons for `holdMs`, then return to rest.
+void press(bool up, bool dn, bool pwr, uint16_t holdMs) {
+  if (up)  moveTo(upServo, PIN_UP, cal.upPress);
+  if (dn)  moveTo(dnServo, PIN_DN, cal.dnPress);
   if (pwr) moveTo(pwrServo, PIN_PWR, cal.pwrPress);
   delay(TRAVEL_MS + holdMs);
-  if (vol) moveTo(volServo, PIN_VOL, cal.volRest);
+  if (up)  moveTo(upServo, PIN_UP, cal.upRest);
+  if (dn)  moveTo(dnServo, PIN_DN, cal.dnRest);
   if (pwr) moveTo(pwrServo, PIN_PWR, cal.pwrRest);
   relax();
 }
 
 // Returns false for an unknown button name.
 bool doButton(const String& b, uint16_t ms) {
-  if (b == "up")         press(true, cal.volUp, false, ms ? ms : TAP_MS);
-  else if (b == "down")  press(true, cal.volDown, false, ms ? ms : TAP_MS);
-  else if (b == "power") press(false, 0, true, ms ? ms : TAP_MS);
-  else if (b == "long")  press(false, 0, true, ms ? ms : LONG_PRESS_MS);
-  else if (b == "shot")  press(true, cal.volDown, true, ms ? ms : SHOT_MS);
+  if (b == "up")         press(true, false, false, ms ? ms : TAP_MS);
+  else if (b == "down")  press(false, true, false, ms ? ms : TAP_MS);
+  else if (b == "power") press(false, false, true, ms ? ms : TAP_MS);
+  else if (b == "long")  press(false, false, true, ms ? ms : LONG_PRESS_MS);
+  else if (b == "shot")  press(false, true, true, ms ? ms : SHOT_MS);
   else return false;
   return true;
 }
@@ -128,7 +136,7 @@ clicks the button (plus 2-3&deg; more), then press Save.</p>
 <button onclick="save()">Save</button></details>
 <p id=st></p>
 <script>
-const F=['volRest','volUp','volDown','pwrRest','pwrPress'];
+const F=['upRest','upPress','dnRest','dnPress','pwrRest','pwrPress'];
 function st(t){document.getElementById('st').textContent=t}
 function p(b){st('...');fetch('/press?b='+b).then(r=>r.text()).then(st)}
 fetch('/cal').then(r=>r.json()).then(c=>{let h='';for(const k of F)h+=
@@ -140,15 +148,16 @@ function save(){fetch('/save?'+F.map(k=>k+'='+document.getElementById(k).value).
 </script></body></html>)HTML";
 
 String calJson() {
-  return String("{\"volRest\":") + cal.volRest + ",\"volUp\":" + cal.volUp +
-         ",\"volDown\":" + cal.volDown + ",\"pwrRest\":" + cal.pwrRest +
-         ",\"pwrPress\":" + cal.pwrPress + "}";
+  return String("{\"upRest\":") + cal.upRest + ",\"upPress\":" + cal.upPress +
+         ",\"dnRest\":" + cal.dnRest + ",\"dnPress\":" + cal.dnPress +
+         ",\"pwrRest\":" + cal.pwrRest + ",\"pwrPress\":" + cal.pwrPress + "}";
 }
 
 uint8_t* calField(const String& k) {
-  if (k == "volRest") return &cal.volRest;
-  if (k == "volUp") return &cal.volUp;
-  if (k == "volDown") return &cal.volDown;
+  if (k == "upRest") return &cal.upRest;
+  if (k == "upPress") return &cal.upPress;
+  if (k == "dnRest") return &cal.dnRest;
+  if (k == "dnPress") return &cal.dnPress;
   if (k == "pwrRest") return &cal.pwrRest;
   if (k == "pwrPress") return &cal.pwrPress;
   return nullptr;
@@ -170,13 +179,14 @@ void setupWeb() {
   server.on("/jog", [] {
     String k = server.arg("k");
     uint8_t a = constrain(server.arg("a").toInt(), 0, 180);
-    if (k.startsWith("vol")) moveTo(volServo, PIN_VOL, a);
+    if (k.startsWith("up")) moveTo(upServo, PIN_UP, a);
+    else if (k.startsWith("dn")) moveTo(dnServo, PIN_DN, a);
     else if (k.startsWith("pwr")) moveTo(pwrServo, PIN_PWR, a);
     server.send(200, "text/plain", "ok");
   });
 
   server.on("/save", [] {
-    const char* keys[] = {"volRest", "volUp", "volDown", "pwrRest", "pwrPress"};
+    const char* keys[] = {"upRest", "upPress", "dnRest", "dnPress", "pwrRest", "pwrPress"};
     for (const char* k : keys)
       if (server.hasArg(k)) *calField(k) = constrain(server.arg(k).toInt(), 0, 180);
     saveCal();

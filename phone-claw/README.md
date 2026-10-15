@@ -1,88 +1,169 @@
 # Phone Claw – servo button presser for a OnePlus 7 Pro
 
-A 3D‑printable saddle that grips a (case‑less) OnePlus 7 Pro by its two long
-edges, the same place your fingers and thumb hold it. Three micro servos
-press **Volume +**, **Volume −** and **Power**, driven by a ~$2 **ESP8266
-Wemos D1 mini**. You control it from a web page on your phone or PC, an HTTP
-API, or USB serial.
+A 3D‑printable saddle that holds a OnePlus 7 Pro (no case) by its long edges.
+Three micro servos press **Volume +**, **Volume −** and **Power**. An ESP8266
+board drives them, and you control it from a web page, an HTTP API or USB
+serial.
 
 ![assembly](images/assembly.png)
 
-## How it works
+## Project status
 
-Each button has its own SG90 servo standing upright beside the phone. A
-printed lever, 15 mm long, sits on the servo horn. A finger hangs down from
-its end to button height, 1 mm away from the button. When the servo turns
-about 8–12°, the finger's rounded pad pushes the button in. The lever geometry
-can push up to ~5.8 mm past the gap, far more than a button needs, and the pad
-lands within ~1.5 mm of the button centre.
+| Item | State |
+|---|---|
+| 3D model (`phone_claw.scad` + STLs) | Done, rendered and collision‑checked. **Not printed yet.** |
+| Button positions | Measured from a top‑down reference photo (accurate to ~±1 mm) |
+| Firmware | Written, and type‑checked with stand‑in libraries. **Not yet compiled or run on real hardware.** |
+| Parts | Being ordered |
 
-| Side (screen up, top away from you) | Servo | Pin |
+**To resume:** when the parts arrive, follow [Next steps](#next-steps) from
+step 1.
+
+---
+
+## Parts needed
+
+### Electronics
+
+| Qty | Part | Notes |
+|---|---|---|
+| 1 | **ESP8266 board**: NodeMCU V3 (ESP‑12E) *or* Wemos D1 mini | Either works with the same code. NodeMCU boards often use a CH340 USB chip, which may need its free driver on Windows or Mac. |
+| 3 | **SG90 9 g micro servo, 180° version** | Not the 360°/continuous version, which can't hold an angle. Must include horns; the single‑arm horn is used. Optionally buy a spare. |
+| 1 | **Electrolytic capacitor, 470–1000 µF, ≥10 V** | Smooths the servo power. Polarised: the stripe side is negative. |
+| 1 | **Solderless breadboard** (400 or 830 holes) | Lets all three servos share 5 V and ground without soldering. |
+| 1 set | **Dupont jumper wires** (male‑male + male‑female) | 5 male‑to‑female plus 9 male‑to‑male are needed. |
+| 1 | **USB cable that carries data** | Micro‑USB on most of these boards. Charge‑only cables can't upload code. |
+| 1 | **5 V USB charger, 1 A or more** | Powers everything once it's set up. |
+
+### Hardware and tools
+
+| Qty | Part | Notes |
+|---|---|---|
+| 3 | **M2 × 8 mm screws** | Fix each printed lever and its horn to the servo shaft (the stock horn screw is too short). Hex socket screws need a 1.5 mm hex key. |
+| – | Side cutters or nail clippers | To trim the horns |
+| – | Small Phillips screwdriver | For the servo tab screws (included with the servos) |
+| – | ~60–80 g PLA or PETG | For printing |
+| – | *Optional:* digital calipers | Handy for measuring the servo and checking prints |
+
+**Rough cost, excluding printing:** about $8–15 from budget marketplaces, or
+about $25–35 from mainstream retailers that sell multipacks.
+
+---
+
+## Design overview
+
+**Layout.** The phone lies **screen‑up** in a saddle and slides in from the
+bottom end until its top edge touches a small stop post. Side walls with thin
+lips grip the long edges, the same place you'd hold it by hand. Each servo
+stands upright in a pocket beside the phone.
+
+| Side (screen up, top away from you) | Servo | Board pin |
 |---|---|---|
 | Left – above the volume rocker | Volume + | D5 |
 | Left – below the volume rocker | Volume − | D6 |
 | Right – below the power key | Power | D7 |
 
-The phone slides in from the bottom end until its top edge hits a small stop
-post. Lips over the glass edge stop it from lifting. The alert slider has a
-cut‑out so sliding the phone in doesn't flip it. The stop post sits on the
-right of the top edge, away from the pop‑up selfie camera.
+**Mechanism.** A printed 15 mm lever sits on each servo horn. A finger hangs
+from its end down to button height and rests 1 mm from the button. When the
+servo turns about 8–12°, the finger's rounded pad pushes the button in. The
+lever can push up to ~5.8 mm, far more than needed, and the pad lands within
+~1.5 mm of the button centre.
 
-| Volume side | Power side |
-|---|---|
-| ![](images/closeup_volume.png) | ![](images/closeup_power.png) |
+**Clearances.**
+- The wall has windows wherever a finger reaches the phone.
+- The alert slider has its own cut‑out, so sliding the phone in doesn't flip it.
+- The top stop post sits on the right of the top edge, clear of the pop‑up
+  selfie camera.
 
-## Button positions used (measured)
-
-These were measured from a top‑down photo of the phone lying on paper with
-pencil marks at its ends and at each button. Two independent ways of reading
-the photo agreed to within ~1 mm, and they also match an earlier AR‑ruler
-photo. All distances are from the **top edge** of the phone:
-
-| Feature | Span | Press point used |
+| Volume side | Power side | Top view |
 |---|---|---|
-| Volume rocker | 34.0 → 54.5 mm (split at 43.5) | Vol+ 38.75, Vol− 49.0 |
-| Power key | 57.5 → 69.0 mm | 63.3 |
-| Alert slider | ~41 → 49 mm | kept clear (cut‑out 38–52) |
+| ![](images/closeup_volume.png) | ![](images/closeup_power.png) | ![](images/top_view.png) |
 
-If your phone differs, edit these at the top of `phone_claw.scad` and
-re‑export (see below). The model checks itself: it refuses to render if
-parts would collide.
+### Button positions used
 
-## Which controller is cheapest?
+All distances are measured from the phone's **top edge**:
 
-| Option | Typical price | Notes |
+| Feature | Span | Press point |
 |---|---|---|
-| **ESP8266 Wemos D1 mini (chosen)** | ~$2–3 | WiFi built in, so no PC needed. Its built‑in `Servo` library needs no extra installs. |
-| ESP32‑C3 SuperMini | ~$2–3 | Also works. Needs the `ESP32Servo` library and different pin names. |
-| Arduino Nano (clone) | ~$3–4 | No WiFi, so it must stay plugged into a PC to be controlled. |
+| Volume rocker | 34.0 → 54.5 mm (split at 43.5) | Vol+ 38.75 mm, Vol− 49.0 mm |
+| Power key | 57.5 → 69.0 mm | 63.3 mm |
+| Alert slider | ~41 → 49 mm | kept clear (cut‑out 38–52 mm) |
 
-## Bill of materials (excluding printing)
+### Printed parts
 
-| Qty | Part | AliExpress | Amazon (multipacks) |
-|---|---|---|---|
-| 1 | Wemos D1 mini (ESP8266) | $2–3 | ~$10 / 3‑pack |
-| 3 | SG90 micro servo (comes with horns + screws) | $1–1.50 each | ~$10 / 4‑pack |
-| 1 | 470–1000 µF ≥10 V electrolytic capacitor | ~$0.10 | in a kit |
-| – | Dupont jumper wires | ~$1 | ~$6 |
-| 3 | M2×8 screws (the stock horn screw is too short to go through the printed lever) | pennies | ~$5 kit |
-| – | USB 5 V supply, 1 A or more (any phone charger) | reuse | reuse |
-| | **Total** | **≈ $8–10** | **≈ $25–35** (with spares) |
+| File | Part | Print notes |
+|---|---|---|
+| `stl/claw_base.stl` | Base / saddle, 156 × 95 × 33 mm | Flat on the bed, no supports |
+| `stl/arm_vol_up.stl` | Volume + lever | Exported upside down, no supports |
+| `stl/arm_vol_dn.stl` | Volume − lever | Exported upside down, no supports |
+| `stl/arm_power.stl` | Power lever | Exported upside down, no supports |
 
-These prices are rough estimates, not checked against current listings.
+Suggested settings: PLA or PETG, 0.2 mm layers, 3 walls, 15–20 % infill.
 
-## Files
+### Wiring (breadboard, no soldering)
 
-| File | What |
-|---|---|
-| `phone_claw.scad` | Parametric OpenSCAD source |
-| `stl/claw_base.stl` | Base / saddle (156 × 95 × 33 mm) |
-| `stl/arm_vol_up.stl` | Lever for the Volume + servo |
-| `stl/arm_vol_dn.stl` | Lever for the Volume − servo |
-| `stl/arm_power.stl` | Lever for the Power servo |
-| `firmware/phone_claw/phone_claw.ino` | ESP8266 sketch |
+```
+ ESP8266 board                    Breadboard
+ -------------                    ----------
+ VU (or VIN) / 5V ──M‑F wire──►  + rail ──┬── red    (all 3 servos, via M‑M wires)
+ G               ──M‑F wire──►  − rail ──┼── brown  (all 3 servos)
+                                          └── capacitor across + / − (stripe on −)
+ D5 (GPIO14)     ──M‑F wire──►  row A ────── orange  VOLUME UP servo
+ D6 (GPIO12)     ──M‑F wire──►  row B ────── orange  VOLUME DOWN servo
+ D7 (GPIO13)     ──M‑F wire──►  row C ────── orange  POWER servo
+```
 
-Re‑export after editing:
+- The NodeMCU is too wide for a breadboard, so leave it beside it and use
+  male‑to‑female wires.
+- Power the servos from **5 V** (VU, VIN or 5V), never 3V3.
+
+### Firmware
+
+`firmware/phone_claw/phone_claw.ino` (Arduino, ESP8266 core, no extra
+libraries):
+
+- **Web page:** Volume +, Volume −, Power, Power (hold 3 s), Screenshot
+  (Power + Vol −), plus a **Calibrate** section with live sliders. Calibration
+  is saved to flash.
+- **HTTP:** `/press?b=up|down|power|long|shot&ms=150`
+- **Serial (115200):** `u`, `d`, `p`, `P` or `s`
+- **WiFi:** joins the network set in the sketch. If it can't, it starts its
+  own network called `PhoneClaw` at `192.168.4.1`.
+- Servos are switched off after each press, so they don't hum or keep pushing
+  on the phone.
+
+---
+
+## Next steps
+
+These need only the purchased parts. Do them before printing.
+
+1. **Test the electronics.**
+   1. Wire everything on the breadboard as above.
+   2. Install the ESP8266 core in the Arduino IDE (Boards Manager URL:
+      `https://arduino.esp8266.com/stable/package_esp8266com_index.json`).
+   3. Select **NodeMCU 1.0 (ESP‑12E Module)** or **LOLIN(WEMOS) D1 R2 &
+      mini** to match your board.
+   4. Set the WiFi name and password in the sketch, then upload.
+   5. Open the web page and check that each button moves the right servo.
+2. **Measure the servo height.**
+   1. Fit a horn and stand the servo on a table.
+   2. Measure from the table to the top of the horn.
+   3. Set `horn_top_h` in `phone_claw.scad` (default 30 mm) and re‑export.
+3. **Trim the horns.** Snip each single‑arm horn to at most **16 mm** from the
+   spline centre to its tip.
+4. **Optional checks** that can be generated when you resume:
+   - A 1:1 paper template to check the press points against the phone.
+   - A thin test slice of the base to check how the phone fits (`fit`).
+5. **Print** the base and **one** lever. Mount that lever, insert the phone,
+   and use the calibration sliders to confirm it clicks its button. Then print
+   the other two levers.
+6. **Calibrate** each servo on the web page:
+   - Set `…Rest` so the finger is just clear of its button.
+   - Set `…Press` to the click point plus 2–3°.
+   - Save.
+
+### Re‑exporting STLs after edits
 
 ```bash
 openscad -D 'part="base"'    -o stl/claw_base.stl  phone_claw.scad
@@ -91,90 +172,18 @@ openscad -D 'part="arm_dn"'  -o stl/arm_vol_dn.stl phone_claw.scad
 openscad -D 'part="arm_pwr"' -o stl/arm_power.stl  phone_claw.scad
 ```
 
-## 1. Check one servo measurement
+The model checks itself: it refuses to render if any parts would collide.
 
-Fit a horn on an SG90 and stand the servo on the table. Measure from the
-table to the **top of the horn** and set `horn_top_h` (default 30 mm). This
-sets the finger height, so it should be within about ±1 mm. The fingers have
-a 4.5 mm‑tall pad, so a small error is fine.
-
-## 2. Print
-
-- PLA or PETG, 0.2 mm layers, 3 walls, 15–20 % infill.
-- **Base**: flat on the bed as exported, no supports needed.
-- **Levers**: exported upside down (flat side on the bed), no supports needed.
-- If the phone is too tight or too loose, change `fit` (default 0.4 mm per side).
-- Print one lever first and dry‑fit it on a servo in the base with the phone
-  in place, to confirm the finger lines up before printing the rest.
-
-## 3. Assemble
-
-1. **Trim the horns.** Use the **single‑arm** horn that comes with each SG90.
-   Snip it so it reaches no more than **16 mm** from the centre of the spline
-   to its tip. The two volume levers sit close together and need this.
-2. Center each servo: run the firmware once (it parks all servos at their
-   rest angle on boot), or turn the shafts by hand to mid‑travel.
-3. Drop each servo into its pocket, shaft toward the phone and wire out the
-   back slot. Screw the tabs down with the SG90 screws.
-4. Push a horn onto each spline pointing along the phone edge, toward its
-   button. Press the matching printed lever onto it (the horn fits a recess
-   underneath). Fix it with an **M2×8** screw through the center into the
-   shaft, plus a drop of super glue or a small horn screw in the outer hole.
-5. Slide the phone in from the bottom until it touches the stop post.
-
-## 4. Wire it
-
-```
- D1 mini            SG90 (brown / red / orange)
- ---------          ---------------------------
- 5V  ───────────┬── red   (all three servos)
- G   ───────────┼── brown (all three servos)
-                └── 470-1000 µF cap across 5V/G (+ to 5V)
- D5 (GPIO14) ────── orange  VOLUME UP servo
- D6 (GPIO12) ────── orange  VOLUME DOWN servo
- D7 (GPIO13) ────── orange  POWER servo
-```
-
-Power the D1 mini from a USB charger (1 A or more). The firmware switches the
-servos off after each press, so they don't hum or press on the phone
-constantly. At most two move at once (for a screenshot).
-
-## 5. Flash and calibrate
-
-1. Arduino IDE → Boards Manager → add
-   `https://arduino.esp8266.com/stable/package_esp8266com_index.json` and
-   install **esp8266**. Select board **LOLIN(WEMOS) D1 R2 & mini**.
-2. Open `firmware/phone_claw/phone_claw.ino`, set `WIFI_SSID` and
-   `WIFI_PASS`, then upload.
-3. Open the Serial Monitor (115200) to see the IP address, or browse to
-   `http://phoneclaw.local/`. If the board can't join your WiFi, it starts its
-   own network **PhoneClaw** (password `clawclaw`) at `http://192.168.4.1/`.
-4. Expand **Calibrate**. For each servo:
-   - Set `…Rest` so the finger sits just clear of its button.
-   - Drag `…Press` until the button clicks, then add 2–3° more. If the finger
-     moves away from the phone, go the other direction from rest.
-   - Press **Save**. The angles are kept after a reboot.
-   - Don't push much past the click. The servo can push the phone sideways or
-     strain itself.
-
-## Control
-
-- **Web page:** Volume +, Volume −, Power, Power (hold 3 s, opens the power
-  menu), Screenshot (Power + Vol −).
-- **HTTP:** `curl "http://phoneclaw.local/press?b=up"`.
-  Valid values are `b=up|down|power|long|shot`. Add `&ms=500` for a custom
-  hold time.
-- **Serial:** send `u`, `d`, `p`, `P` or `s`.
-
-## Tuning knobs in `phone_claw.scad`
+### Tuning parameters (`phone_claw.scad`)
 
 | Parameter | Effect |
 |---|---|
 | `*_from_top` | button positions |
-| `fit` | grip tightness |
+| `fit` | grip tightness (default 0.4 mm per side) |
+| `horn_top_h` | finger height; set from the measured servo |
+| `horn_reach` | how far the horns were trimmed |
 | `gap` | finger‑to‑button distance at rest |
-| `reach` | lever length along the phone edge (longer = more push, more slide) |
-| `slide_comp_vol/pwr` | how far past the target the finger starts, to offset the slide while pressing |
-| `horn_reach` | how far you trimmed the horn |
-| `deck_h` | phone height above the table (must leave room for the servo under its tabs) |
-| `stop_x0/stop_x1` | position of the top‑edge stop (keep it clear of the pop‑up camera) |
+| `reach` | lever length (longer gives more push but more sideways slide) |
+| `slide_comp_vol/pwr` | how far past the target each finger starts, to offset that slide |
+| `deck_h` | phone height above the table |
+| `stop_x0/stop_x1` | position of the top stop (keep it clear of the pop‑up camera) |

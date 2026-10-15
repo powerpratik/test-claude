@@ -1,5 +1,5 @@
 /*
-  Phone Claw firmware - ESP8266 (Wemos D1 mini)
+  Phone Claw firmware - ESP8266 (NodeMCU V3 or Wemos D1 mini)
 
   Three SG90 servos, one per OnePlus 7 Pro button:
     UP  servo (left side, above the rocker, D5) : presses VOLUME UP
@@ -15,7 +15,10 @@
   Calibrate once from the web page (jog sliders, then "Save"); the angles are
   stored in flash so they survive reboots.
 
-  Board: "LOLIN(WEMOS) D1 R2 & mini" (ESP8266 core). No extra libraries needed.
+  Board (ESP8266 core, no extra libraries needed):
+    NodeMCU V3 / ESP-12E  -> "NodeMCU 1.0 (ESP-12E Module)"
+    Wemos D1 mini         -> "LOLIN(WEMOS) D1 R2 & mini"
+  Both use the same D5 / D6 / D7 pin names.
 */
 
 #include <ESP8266WiFi.h>

@@ -32,7 +32,7 @@ phone_l   = 162.6;      // length (only used for the preview)
 fit       = 0.4;        // clearance per side. Raise if it is too tight.
 
 // Button positions, measured from the TOP edge of the phone (mm).
-// Taken from the owner's pencil-mark photo (two methods agreed to ~1 mm):
+// Measured from a top-down reference photo (two methods agreed to ~1 mm):
 //   volume rocker 34.0 -> 54.5 (split at 43.5)
 //   power key     57.5 -> 69.0
 //   alert slider  41   -> 49
